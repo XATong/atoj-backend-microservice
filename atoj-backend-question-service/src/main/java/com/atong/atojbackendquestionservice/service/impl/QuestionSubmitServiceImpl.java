@@ -2,9 +2,9 @@ package com.atong.atojbackendquestionservice.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
-
 import com.atong.atojbackendcommon.common.ErrorCode;
 import com.atong.atojbackendcommon.constant.CommonConstant;
+import com.atong.atojbackendcommon.constant.RabbitMqConstant;
 import com.atong.atojbackendcommon.exception.BusinessException;
 import com.atong.atojbackendcommon.utils.SqlUtils;
 import com.atong.atojbackendmodel.model.dto.questionsubmit.JudgeInfo;
@@ -20,10 +20,11 @@ import com.atong.atojbackendmodel.model.vo.QuestionSubmitViewVO;
 import com.atong.atojbackendmodel.model.vo.QuestionVO;
 import com.atong.atojbackendmodel.model.vo.UserVO;
 import com.atong.atojbackendquestionservice.mapper.QuestionSubmitMapper;
+import com.atong.atojbackendquestionservice.mq.MessageProducer;
 import com.atong.atojbackendquestionservice.service.QuestionService;
 import com.atong.atojbackendquestionservice.service.QuestionSubmitService;
-import com.atong.atojbackendserviceclient.service.JudgeService;
-import com.atong.atojbackendserviceclient.service.UserService;
+import com.atong.atojbackendserviceclient.service.JudgeFeignClient;
+import com.atong.atojbackendserviceclient.service.UserFeignClient;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -53,11 +54,14 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     private QuestionService questionService;
 
     @Resource
-    private UserService userService;
+    private UserFeignClient userFeignClient;
 
     @Resource
-    @Lazy // 循环调用导致异常, 开启懒加载注解
-    private JudgeService judgeService;
+    private MessageProducer messageProducer;
+
+//    @Resource
+//    @Lazy // 循环调用导致异常, 开启懒加载注解
+//    private JudgeFeignClient judgeFeignClient;
 
     /**
      * 提交题目
@@ -109,11 +113,15 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "提交数更新失败");
             }
         }
-        // 执行判题服务
+
         Long questionSubmitId = questionSubmit.getId();
-        CompletableFuture.runAsync(() -> {
-            judgeService.doJudge(questionSubmitId);
-        });
+        // 发布消息
+        messageProducer.sendMessage(RabbitMqConstant.EXCHANGE_NAME, RabbitMqConstant.ROUTING_KEY, String.valueOf(questionSubmitId));
+
+        // 异步执行判题服务
+//        CompletableFuture.runAsync(() -> {
+//            judgeFeignClient.doJudge(questionSubmitId);
+//        });
         return questionSubmitId;
     }
 
@@ -156,7 +164,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         long userId = questionSubmit.getUserId();
         // 登录用户id
         long loginUserId = loginUser.getId();
-        if (loginUserId != userId && !userService.isAdmin(loginUser)){
+        if (loginUserId != userId && !userFeignClient.isAdmin(loginUser)){
             questionSubmitVO.setCode(null);
         }
         // 关联题目和用户信息
@@ -164,7 +172,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         HttpServletRequest request = null;
         QuestionVO questionVO = questionService.getQuestionVO(questionService.getById(questionId), request);
         questionSubmitVO.setQuestionVO(questionVO);
-        UserVO userVO = userService.getUserVO(userService.getById(userId));
+        UserVO userVO = userFeignClient.getUserVO(userFeignClient.getById(userId));
         questionSubmitVO.setUserVO(userVO);
         return questionSubmitVO;
     }

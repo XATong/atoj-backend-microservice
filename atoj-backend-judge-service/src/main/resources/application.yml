@@ -1,6 +1,5 @@
 # 公共配置文件
-# @author <a href="https://github.com/liyupi">程序员鱼皮</a>
-# @from <a href="https://yupi.icu">编程导航知识星球</a>
+# @author <a href="https://gitee.com/x-2022-k">阿通</a>
 spring:
   application:
     name: atoj-backend-judge-service
@@ -40,16 +39,28 @@ spring:
     multipart:
       # 大小限制
       max-file-size: 10MB
+  # nacos
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+  # 消息队列
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 
 server:
   address: 0.0.0.0
   port: 8104
   servlet:
-    context-path: /api
+    context-path: /api/judge
     # cookie 30 天过期
     session:
       cookie:
         max-age: 2592000
+        path: /api
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
@@ -62,3 +73,7 @@ mybatis-plus:
 # 代码沙箱配置
 codesandbox:
   type: remote
+
+#接口文档
+knife4j:
+  enable: true

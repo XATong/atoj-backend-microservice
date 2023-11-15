@@ -1,7 +1,6 @@
 package com.atong.atojbackendquestionservice.service.impl;
 
 import cn.hutool.json.JSONUtil;
-
 import com.atong.atojbackendcommon.common.ErrorCode;
 import com.atong.atojbackendcommon.constant.CommonConstant;
 import com.atong.atojbackendcommon.exception.BusinessException;
@@ -16,7 +15,7 @@ import com.atong.atojbackendmodel.model.vo.QuestionVO;
 import com.atong.atojbackendmodel.model.vo.UserVO;
 import com.atong.atojbackendquestionservice.mapper.QuestionMapper;
 import com.atong.atojbackendquestionservice.service.QuestionService;
-import com.atong.atojbackendserviceclient.service.UserService;
+import com.atong.atojbackendserviceclient.service.UserFeignClient;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -47,7 +46,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     private final static Gson GSON = new Gson();
 
     @Resource
-    private UserService userService;
+    private UserFeignClient userFeignClient;
 
 
     /**
@@ -135,9 +134,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         Long userId = question.getUserId();
         User user = null;
         if (userId != null && userId > 0) {
-            user = userService.getById(userId);
+            user = userFeignClient.getById(userId);
         }
-        UserVO userVO = userService.getUserVO(user);
+        UserVO userVO = userFeignClient.getUserVO(user);
         questionVO.setUserVO(userVO);
         return questionVO;
     }
@@ -151,7 +150,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         }
         // 1. 关联查询用户信息
         Set<Long> userIdSet = questionList.stream().map(Question::getUserId).collect(Collectors.toSet());
-        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
+        Map<Long, List<User>> userIdUserListMap = userFeignClient.listByIds(userIdSet).stream()
                 .collect(Collectors.groupingBy(User::getId));
         // 填充信息
         List<QuestionVO> questionVOList = questionList.stream().map(question -> {
@@ -161,7 +160,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             if (userIdUserListMap.containsKey(userId)) {
                 user = userIdUserListMap.get(userId).get(0);
             }
-            questionVO.setUserVO(userService.getUserVO(user));
+            questionVO.setUserVO(userFeignClient.getUserVO(user));
             return questionVO;
         }).collect(Collectors.toList());
         questionVOPage.setRecords(questionVOList);
@@ -176,9 +175,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         Page<QuestionManageVO> questionManageVoPage = new Page<>();
         BeanUtils.copyProperties(questionPage, questionManageVoPage, "records");
         List<Long> userIdList = questionPage.getRecords().stream().map(Question::getUserId).collect(Collectors.toList());
-        List<User> userList = userService.list(
-                Wrappers.lambdaQuery(User.class).select(User::getUserName, User::getId).in(User::getId, userIdList)
-        );
+        List<User> userList = userFeignClient.list(userIdList);
         Map<Long, List<User>> userIdToName = userList.stream().collect(Collectors.groupingBy(User::getId));
         questionManageVoPage.setRecords(
                 questionPage.getRecords().stream().map(question -> {
