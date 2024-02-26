@@ -34,7 +34,7 @@ public class MessageConsumer {
             judgeService.doJudge(questionId);
             channel.basicAck(deliveryTag, false);
         } catch (IOException e) {
-            channel.basicNack(deliveryTag, false, true);
+            channel.basicNack(deliveryTag, false, false);
         }
     }
 }
