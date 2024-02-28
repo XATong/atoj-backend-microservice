@@ -18,16 +18,16 @@ spring:
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/atoj
+    url: jdbc:mysql://118.89.125.2:3306/atoj
     username: root
-    password: root
+    password: atong
   # Redis 配置
   redis:
     database: 1
-    host: 106.52.194.12
+    host: 118.89.125.2
     port: 6379
     timeout: 5000
-    password: qhst66
+    password: atong
     lettuce:
       pool:
         max-active: 10
@@ -42,14 +42,16 @@ spring:
   # nacos
   cloud:
     nacos:
-      config:
-        server-addr: 127.0.0.1:8848
+      discovery:
+        server-addr: 118.89.125.2:8848
+        username: nacos
+        password: nacos
   # 消息队列
   rabbitmq:
-    host: localhost
+    host: 118.89.125.2
     port: 5672
-    username: guest
-    password: guest
+    username: rabbitmq
+    password: atong
 
 server:
   address: 0.0.0.0

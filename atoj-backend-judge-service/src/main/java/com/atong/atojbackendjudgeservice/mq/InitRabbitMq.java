@@ -18,7 +18,10 @@ public class InitRabbitMq {
     public static void doInit() {
         try {
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost("localhost");
+//            factory.setHost("localhost");
+            factory.setHost("118.89.125.2");
+            factory.setUsername("rabbitmq");
+            factory.setPassword("atong");
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
             String exchangeName = RabbitMqConstant.EXCHANGE_NAME;
